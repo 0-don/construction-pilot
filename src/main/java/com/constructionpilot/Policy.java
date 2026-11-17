@@ -7,8 +7,6 @@ import net.runelite.api.coords.WorldPoint;
 final class Policy
 {
 	private static final int DEFAULT_TRIP_TICKS = 12;
-	// Talking to the servant and choosing the fetch takes a couple of ticks on top of the trip.
-	static final int DIALOG_TICKS = 2;
 	// Remove click to the space being free again, from the tick logs (click, gone one tick later).
 	static final int REMOVE_TICKS = 2;
 
@@ -170,7 +168,7 @@ final class Policy
 	static int usedDuringTrip(Snapshot s)
 	{
 		int perBuild = s.getPlanksPerBuild();
-		int horizon = tripTicks(s) + DIALOG_TICKS;
+		int horizon = tripTicks(s);
 		double ticksPerBuild = s.getPlanksPerTick() > 0 ? perBuild / s.getPlanksPerTick() : perBuild;
 		int buildTicks = Math.max(2, (int) Math.round(ticksPerBuild) - REMOVE_TICKS);
 		int built = 0;
@@ -188,7 +186,7 @@ final class Policy
 		}
 		int planks = s.getPlanks();
 		int used = 0;
-		// A bench still appearing finishes while you talk to him, so its wait overlaps the dialog ticks.
+		// Measured from the send: no building while you talk to him, a bench still appearing finishes meanwhile.
 		int tick = 0;
 		while (true)
 		{

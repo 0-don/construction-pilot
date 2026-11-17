@@ -362,15 +362,15 @@ public class PolicyTest
 	@Test
 	public void larderTripUsesWholeLarders()
 	{
-		// One plank a tick: build 6, remove 2, build 6 fills the 14 tick horizon, so two larders' planks go.
-		assertEquals(16, Policy.usedDuringTrip(larder().build()));
+		// One plank a tick: build 6, remove 2, then the next 6 tick build does not finish within the 12 tick trip.
+		assertEquals(8, Policy.usedDuringTrip(larder().build()));
 	}
 
 	@Test
-	public void larderSendsWithTwoBuildsLeft()
+	public void larderSendsWithOneBuildLeft()
 	{
-		Snapshot s = larder().butlerPresent(true).requestedFetch(24).planks(16).build();
-		assertEquals(Step.SEND_BUTLER, Policy.decide(s).getStep());
+		assertEquals(Step.BUILD, Policy.decide(larder().butlerPresent(true).requestedFetch(24).planks(16).build()).getStep());
+		assertEquals(Step.SEND_BUTLER, Policy.decide(larder().butlerPresent(true).requestedFetch(24).planks(8).build()).getStep());
 	}
 
 	@Test
