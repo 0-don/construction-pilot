@@ -20,6 +20,9 @@ class Butler
 	private static final int REACH = 6;
 	// He hands over only once you are free; past this the hand-over is not coming (empty bank).
 	private static final int HAND_OVER_TICKS = 30;
+	// A click elsewhere as he arrives usually still gets the planks on that tick or the next (105 of 120 in the
+	// logs); only after this long without them does he keep the fetch until you talk to him.
+	private static final int SKIP_TICKS = 2;
 	// Servant dialogue, as read by the Butler Info plugin.
 	private static final Pattern WAITS_WITH = Pattern.compile("I shall wait with these (\\d+) items");
 	private static final String WAITS_WITH_LAST = "I shall wait with the last item";
@@ -58,6 +61,7 @@ class Butler
 	private boolean paidByHand;
 
 	private boolean awaitingHandOver;
+	private int clickedAwayTick = -1;
 	private int arrivedTick = -1;
 	private int leftTick = -1;
 	// Planks arriving on the tick of his return dialogue or the next are still the delivery.
@@ -93,6 +97,7 @@ class Butler
 		type = spawnedType;
 		arrivedTick = client.getTickCount();
 		awaitingHandOver = leftTick >= 0;
+		clickedAwayTick = -1;
 		if (leftTick >= 0)
 		{
 			int trip = arrivedTick - leftTick;
@@ -191,12 +196,9 @@ class Butler
 	void clicked(NPC target)
 	{
 		returnDialogOpen = false;
-		// Clicked away before he handed anything over: he keeps the whole fetch until you talk to him.
-		if (awaitingHandOver && npc != null && target != npc)
+		if (awaitingHandOver && npc != null && target != npc && clickedAwayTick < 0)
 		{
-			awaitingHandOver = false;
-			holding = Math.max(holding, requestedFetch > 0 ? requestedFetch : lastDelivery > 0 ? lastDelivery : type != null ? type.getCapacity() : 0);
-			tickLog.add("hand-over skipped, butler holds " + holding);
+			clickedAwayTick = client.getTickCount();
 		}
 	}
 
@@ -208,6 +210,13 @@ class Butler
 	void tick()
 	{
 		readFetchOption();
+		// Clicked away and still nothing: he keeps the whole fetch until you talk to him.
+		if (awaitingHandOver && npc != null && clickedAwayTick >= 0 && client.getTickCount() - clickedAwayTick >= SKIP_TICKS)
+		{
+			awaitingHandOver = false;
+			holding = Math.max(holding, requestedFetch > 0 ? requestedFetch : lastDelivery > 0 ? lastDelivery : type != null ? type.getCapacity() : 0);
+			tickLog.add("hand-over skipped, butler holds " + holding);
+		}
 	}
 
 	boolean isNear(WorldPoint player)

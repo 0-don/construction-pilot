@@ -28,7 +28,7 @@ final class Policy
 		int holding = s.getButlerHolding();
 		int perBuild = s.getPlanksPerBuild();
 
-		// Back but not handed over yet (you were busy): he has your planks, so he is next, or now when you are out.
+		// Back but not handed over yet: he has your planks, so he is next.
 		boolean waitingOnHim = s.isButlerPresent() && s.isAwaitingHandOver();
 		boolean handedOver = s.isButlerPresent() && !s.isAwaitingHandOver();
 		Decision bench = benchDecision(s, spots, waitingOnHim || handedOver && holding > 0);
@@ -44,13 +44,10 @@ final class Policy
 		boolean wantsTake = holding > 0 && (allFit || planks < perBuild);
 		boolean wantsSend = wantsSend(s);
 
+		// Just back: he hands over by himself once you are free, so the bench stays the step and he shows faintly.
 		Step butlerStep = null;
-		if (waitingOnHim && planks < perBuild)
-		{
-			butlerStep = Step.TAKE_PLANKS;
-		}
 		// Needed now but neither here nor on a trip: he wandered off, so ring for him.
-		else if (!s.isButlerPresent() && !s.isButlerOnTrip() && s.getServantType() != null && (wantsTake || wantsSend))
+		if (!s.isButlerPresent() && !s.isButlerOnTrip() && s.getServantType() != null && (wantsTake || wantsSend))
 		{
 			butlerStep = Step.CALL_BUTLER;
 		}

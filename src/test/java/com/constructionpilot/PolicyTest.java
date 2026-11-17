@@ -227,11 +227,11 @@ public class PolicyTest
 	}
 
 	@Test
-	public void noSendBeforeHandOver()
+	public void handOverComesByItself()
 	{
-		// Back with planks you have not received: talk to him to get them, never send him off again.
+		// Back with planks you have not received: never send him off again, and no click needed, he hands over.
 		Snapshot s = base().butlerPresent(true).awaitingHandOver(true).requestedFetch(26).planks(2).build();
-		assertEquals(Step.TAKE_PLANKS, Policy.decide(s).getStep());
+		assertEquals(Step.WAIT, Policy.decide(s).getStep());
 	}
 
 	@Test
