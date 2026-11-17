@@ -10,6 +10,7 @@ import lombok.Getter;
 import net.runelite.api.Client;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
+import net.runelite.api.Skill;
 import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.client.config.ConfigManager;
@@ -24,6 +25,8 @@ class SetupCheck
 	private static final Set<Integer> SAWS = Set.of(ItemID.POH_SAW, ItemID.EYEGLO_CRYSTAL_SAW, ItemID.WEARABLE_SAW, ItemID.WEARABLE_SAW_OFFHAND);
 	private static final String QOL_PLUGIN = "Construction QOL";
 	private static final String QOL_GROUP = "zom-con-qol";
+	// Mahogany tables, the first method this plugin drives.
+	private static final int FIRST_METHOD_LEVEL = 52;
 
 	private final Client client;
 	private final ConfigManager configManager;
@@ -48,7 +51,12 @@ class SetupCheck
 	{
 		List<String> missing = new ArrayList<>();
 		List<String> tips = new ArrayList<>();
-		if (snapshot.getSpots() != null && !snapshot.getSpots().isEmpty())
+		if (snapshot.isBuildingMode() && client.getBoostedSkillLevel(Skill.CONSTRUCTION) < FIRST_METHOD_LEVEL)
+		{
+			tips.add("Construction Pilot starts at " + FIRST_METHOD_LEVEL + " (mahogany tables)");
+			tips.add("Until then Mahogany Homes is a good low effort way to train");
+		}
+		else if (snapshot.isBuildingMode() && snapshot.getSpots() != null && !snapshot.getSpots().isEmpty())
 		{
 			check(snapshot, missing, tips);
 		}

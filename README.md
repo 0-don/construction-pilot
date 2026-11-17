@@ -2,6 +2,8 @@
 
 Shows what to click next, and when, while you train Construction with the hold 1 method: mahogany tables or gnome benches in your house, with a servant fetching planks.
 
+It drives mahogany tables (level 52) and gnome benches (level 77). Below 52 it says so in building mode and suggests Mahogany Homes, which trains Construction from level 1 without your own house.
+
 You still do every click. The plugin only draws outlines and labels, and can reorder the right click menu so the right option is on left click.
 
 ## What it shows

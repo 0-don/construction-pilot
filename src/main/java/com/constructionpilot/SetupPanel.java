@@ -14,7 +14,6 @@ import net.runelite.client.ui.overlay.components.TitleComponent;
 // Required items in orange, optional speed tips in grey; disappears once there is nothing to say.
 class SetupPanel extends OverlayPanel
 {
-	private final ConstructionPilotPlugin plugin;
 	private final SetupCheck setupCheck;
 	private final ConstructionPilotConfig config;
 
@@ -22,7 +21,6 @@ class SetupPanel extends OverlayPanel
 	SetupPanel(ConstructionPilotPlugin plugin, SetupCheck setupCheck, ConstructionPilotConfig config)
 	{
 		super(plugin);
-		this.plugin = plugin;
 		this.setupCheck = setupCheck;
 		this.config = config;
 		setPosition(OverlayPosition.TOP_LEFT);
@@ -33,7 +31,7 @@ class SetupPanel extends OverlayPanel
 	{
 		List<String> missing = config.setupHints() ? setupCheck.getMissing() : Collections.emptyList();
 		List<String> tips = config.setupTips() ? setupCheck.getTips() : Collections.emptyList();
-		if ((missing.isEmpty() && tips.isEmpty()) || plugin.getDecision().getStep() == Step.IDLE)
+		if (missing.isEmpty() && tips.isEmpty())
 		{
 			return null;
 		}
