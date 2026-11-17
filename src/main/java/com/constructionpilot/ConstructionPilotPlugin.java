@@ -178,6 +178,7 @@ public class ConstructionPilotPlugin extends Plugin
 		else if (now > planks)
 		{
 			butler.planksGained(now - planks);
+			buildTimer.planksGained();
 		}
 		if (now != planks)
 		{

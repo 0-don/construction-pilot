@@ -27,7 +27,7 @@ class BuildTimer
 	private static final int REMOVE_CLICK_TICKS = 3;
 	// The other side is the tick-optimal build only right after a remove.
 	private static final int FRESH_REMOVE_TICKS = 3;
-	// Longer gaps are breaks or butler waits, not your building rhythm.
+	// Longer gaps are breaks, not your building rhythm.
 	private static final int MAX_BUILD_GAP = 12;
 
 	private final Client client;
@@ -38,6 +38,9 @@ class BuildTimer
 	private double planksPerTick = DEFAULT_PLANKS_PER_TICK;
 	private final RollingMedian buildGaps = new RollingMedian(8);
 	private int lastBuildTick = -1;
+	// Something other than building happened since the last build (talking to the butler, taking planks), so
+	// that gap is not your building rhythm.
+	private boolean interrupted;
 	private int buildTicks = DEFAULT_BUILD_TICKS;
 
 	// The hotspot the last Build click went to, so the countdown follows the side actually built.
@@ -84,6 +87,7 @@ class BuildTimer
 		{
 			// Talking to the butler (or anything else) breaks the tick rhythm, so either empty side is fine again.
 			lastRemovedTick = -1;
+			interrupted = true;
 		}
 	}
 
@@ -110,6 +114,11 @@ class BuildTimer
 			pendingBuild = built;
 			pendingBuildTick = client.getTickCount();
 		}
+	}
+
+	void planksGained()
+	{
+		interrupted = true;
 	}
 
 	void furnitureAppeared(GameObject object)
@@ -173,10 +182,11 @@ class BuildTimer
 	{
 		int tick = client.getTickCount();
 		int gap = tick - lastBuildTick;
-		if (lastBuildTick >= 0 && gap > 0 && gap <= MAX_BUILD_GAP)
+		if (lastBuildTick >= 0 && gap > 0 && gap <= MAX_BUILD_GAP && !interrupted)
 		{
 			planksPerTick = (double) perBuild / buildGaps.add(gap);
 		}
 		lastBuildTick = tick;
+		interrupted = false;
 	}
 }

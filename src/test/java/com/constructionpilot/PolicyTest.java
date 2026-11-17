@@ -372,4 +372,35 @@ public class PolicyTest
 		Snapshot s = larder().butlerPresent(true).requestedFetch(24).planks(16).build();
 		assertEquals(Step.SEND_BUTLER, Policy.decide(s).getStep());
 	}
+
+	@Test
+	public void butlerNextOnBuildBecomesSendAfterIt()
+	{
+		for (double rate : new double[]{0.6, 0.75, 0.86, 1.0, 1.2, 1.5})
+		{
+			for (int planks = 6; planks <= 24; planks += 6)
+			{
+				Snapshot s = base().butlerPresent(true).requestedFetch(24).planksPerTick(rate).planks(planks)
+					.spots(Arrays.asList(garden("garden A", false, A1, A2), garden("garden B", false, B1, B2))).build();
+				Decision build = Policy.decide(s);
+				if (build.getStep() != Step.BUILD)
+				{
+					continue;
+				}
+				Snapshot after = s.toBuilder().planks(planks - 6).pendingBuild(Arrays.asList(A1, A2)).ticksUntilBuilt(1).build();
+				boolean sendsAfter = Policy.decide(after).getStep() == Step.SEND_BUTLER;
+				assertEquals("rate " + rate + " planks " + planks, sendsAfter, build.isButlerNext());
+			}
+		}
+	}
+
+	@Test
+	public void clickedRemoveDoesNotLowerSendPoint()
+	{
+		Snapshot standing = base().butlerPresent(true).requestedFetch(24)
+			.spots(Arrays.asList(garden("garden A", true, A1, A2), garden("garden B", false, B1, B2))).build();
+		Snapshot removing = standing.toBuilder().removing("garden A").build();
+		Snapshot gone = standing.toBuilder().spots(Arrays.asList(garden("garden A", false, A1, A2), garden("garden B", false, B1, B2))).build();
+		assertEquals(Policy.usedDuringTrip(gone), Policy.usedDuringTrip(removing));
+	}
 }

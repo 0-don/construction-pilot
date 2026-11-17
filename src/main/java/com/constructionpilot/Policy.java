@@ -33,18 +33,18 @@ final class Policy
 		// Back but not handed over yet (you were busy): he has your planks, so he is next, or now when you are out.
 		boolean waitingOnHim = s.isButlerPresent() && s.isAwaitingHandOver();
 		boolean handedOver = s.isButlerPresent() && !s.isAwaitingHandOver();
-		// One more build and he is due: planks after it at or under the send point.
-		boolean butlerNext = waitingOnHim || handedOver && (holding > 0
-			|| (planks >= perBuild && planks - perBuild <= sendAt));
-		Decision bench = benchDecision(s, spots, butlerNext);
+		Decision bench = benchDecision(s, spots, waitingOnHim || handedOver && holding > 0);
+		// Faint butler on a build only when sending is really due once it stands: the send point is worked out
+		// again for that state, so the hint never flips to a remove.
+		if (bench.getStep() == Step.BUILD && handedOver && holding == 0 && wantsSend(afterBuild(s, bench.getTarget())))
+		{
+			bench = bench.toBuilder().butlerNext(true).build();
+		}
 
 		// Take only when it is worth a click: everything he holds fits, or the next build needs planks.
 		boolean allFit = s.getFreeSlots() >= holding;
-		// Also send when you would run dry before he is back: a few planks he has to hold cost one take click,
-		// waiting with nothing to build costs his whole trip.
-		boolean runsDry = s.getSendAtOverride() == 0 && planks - usedDuringTrip(s) < perBuild;
 		boolean wantsTake = holding > 0 && (allFit || planks < perBuild);
-		boolean wantsSend = holding == 0 && (planks <= sendAt || runsDry);
+		boolean wantsSend = wantsSend(s);
 
 		Step butlerStep = null;
 		if (waitingOnHim && planks < perBuild)
@@ -78,6 +78,28 @@ final class Policy
 			.next(benchQueued ? bench.getTarget() : null)
 			.nextStep(benchQueued ? bench.getStep() : null)
 			.build();
+	}
+
+	// He holds nothing and the planks left are at the send point, or would run dry before he is back: a few planks
+	// he has to hold cost one take click, waiting with nothing to build costs his whole trip.
+	private static boolean wantsSend(Snapshot s)
+	{
+		boolean runsDry = s.getSendAtOverride() == 0 && s.getPlanks() - usedDuringTrip(s) < s.getPlanksPerBuild();
+		return s.getButlerHolding() == 0 && (s.getPlanks() <= sendAt(s, fetchAmount(s)) || runsDry);
+	}
+
+	// The state right after building on the target: its planks spent and its space appearing.
+	private static Snapshot afterBuild(Snapshot s, List<WorldPoint> target)
+	{
+		List<WorldPoint> space = target;
+		for (Spot spot : s.getSpots())
+		{
+			if (spot.getTiles().contains(target.get(0)))
+			{
+				space = spot.getTiles();
+			}
+		}
+		return s.toBuilder().planks(s.getPlanks() - s.getPlanksPerBuild()).pendingBuild(space).removing(null).build();
 	}
 
 	private static Decision benchDecision(Snapshot s, List<Spot> spots, boolean butlerNext)
@@ -156,7 +178,9 @@ final class Policy
 		{
 			for (Spot spot : s.getSpots())
 			{
-				if (spot.isBuilt() || (s.getPendingBuild() != null && spot.getTiles().containsAll(s.getPendingBuild())))
+				// A remove already clicked is gone by the time it matters.
+			boolean removing = spot.getKey().equals(s.getRemoving());
+			if (!removing && spot.isBuilt() || (s.getPendingBuild() != null && spot.getTiles().containsAll(s.getPendingBuild())))
 				{
 					built++;
 				}
