@@ -1,0 +1,13 @@
+.gradle
+build
+.idea/
+.project
+.settings/
+.classpath
+nbactions.xml
+nb-configuration.xml
+nbproject/
+*.class
+# local dev scripts for the Bolt launcher
+deploy.sh
+restart.sh
