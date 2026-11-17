@@ -25,8 +25,6 @@ class BuildTimer
 	private static final int PENDING_TICKS = 8;
 	// A remove click that has not cleared the space by then (dialog closed, misclick) is dropped.
 	private static final int REMOVE_CLICK_TICKS = 3;
-	// The other side is the tick-optimal build only right after a remove.
-	private static final int FRESH_REMOVE_TICKS = 3;
 	// Longer gaps are breaks, not your building rhythm.
 	private static final int MAX_BUILD_GAP = 12;
 
@@ -53,8 +51,9 @@ class BuildTimer
 
 	private String removingKey;
 	private int removeClickTick = -1;
+	// The build goes on the other side of the last remove, even after talking to the butler, so it matches the
+	// space shown faintly during that remove.
 	private String lastRemovedKey;
-	private int lastRemovedTick = -1;
 
 	@Inject
 	BuildTimer(Client client, House house, TickLog tickLog)
@@ -69,6 +68,7 @@ class BuildTimer
 		buildGaps.clear();
 		lastBuildTick = -1;
 		pendingBuild = null;
+		lastRemovedKey = null;
 	}
 
 	void clicked(String option, WorldPoint tile)
@@ -85,8 +85,6 @@ class BuildTimer
 		}
 		else
 		{
-			// Talking to the butler (or anything else) breaks the tick rhythm, so either empty side is fine again.
-			lastRemovedTick = -1;
 			interrupted = true;
 		}
 	}
@@ -138,7 +136,6 @@ class BuildTimer
 	void furnitureGone(GameObject object)
 	{
 		lastRemovedKey = house.spaceAt(object.getWorldLocation());
-		lastRemovedTick = client.getTickCount();
 		removingKey = null;
 	}
 
@@ -169,7 +166,7 @@ class BuildTimer
 			.pendingBuild(inFlight != null ? inFlight : pendingBuild)
 			.ticksUntilBuilt(inFlight != null ? buildTicks + 1 - (now - buildCommitTick) : pendingBuild == null ? 0 : buildTicks - (now - pendingBuildTick))
 			.removing(removingKey != null && now - removeClickTick <= REMOVE_CLICK_TICKS ? removingKey : null)
-			.freshRemoved(lastRemovedTick >= 0 && now - lastRemovedTick <= FRESH_REMOVE_TICKS ? lastRemovedKey : null);
+			.lastRemoved(lastRemovedKey);
 	}
 
 	private List<WorldPoint> clickedSpace()

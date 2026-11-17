@@ -126,7 +126,7 @@ final class Policy
 		}
 		if (s.getPlanks() >= s.getPlanksPerBuild())
 		{
-			String justCleared = s.getRemoving() != null ? s.getRemoving() : s.getFreshRemoved();
+			String justCleared = s.getRemoving() != null ? s.getRemoving() : s.getLastRemoved();
 			return Decision.builder().step(Step.BUILD).target(buildTarget(spots, justCleared, s.getButlerTile())).butlerNext(butlerNext).build();
 		}
 		return Decision.builder().step(Step.WAIT).build();
@@ -209,16 +209,16 @@ final class Policy
 		return used;
 	}
 
-	// Right after a remove the tick-optimal build is the other side; once the rhythm lapsed any empty space
-	// will do, except one the butler stands on.
-	private static List<WorldPoint> buildTarget(List<Spot> spots, String freshRemoved, WorldPoint butlerTile)
+	// The other side of the last remove, the space shown faintly during it; before any remove, every empty space
+	// except one the butler stands on.
+	private static List<WorldPoint> buildTarget(List<Spot> spots, String lastRemoved, WorldPoint butlerTile)
 	{
-		if (freshRemoved != null)
+		if (lastRemoved != null)
 		{
 			List<WorldPoint> other = new ArrayList<>();
 			for (Spot spot : spots)
 			{
-				if (!spot.isBuilt() && !spot.getKey().equals(freshRemoved))
+				if (!spot.isBuilt() && !spot.getKey().equals(lastRemoved))
 				{
 					other.addAll(spot.getTiles());
 				}

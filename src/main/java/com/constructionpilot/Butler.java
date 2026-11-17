@@ -64,7 +64,6 @@ class Butler
 	private int handOverTick = -1;
 	private final RollingMedian recentTrips = new RollingMedian(5);
 	private int measuredTripTicks = -1;
-	private long lastTickMillis;
 	private String lastOptions = "";
 
 	@Inject
@@ -208,7 +207,6 @@ class Butler
 
 	void tick()
 	{
-		lastTickMillis = System.currentTimeMillis();
 		readFetchOption();
 	}
 
@@ -244,18 +242,6 @@ class Butler
 		int trip = measuredTripTicks > 0 ? measuredTripTicks : type.getTripTicks();
 		// Far overdue means he is not on a bank trip (dismissed or left the house); stop counting.
 		return away > trip + 10 ? -1 : Math.max(0, trip - away);
-	}
-
-	// Seconds until he is back, smoothed within the current tick; negative while he is here.
-	double secondsLeft()
-	{
-		int ticks = ticksLeft();
-		if (ticks < 0)
-		{
-			return -1;
-		}
-		long sinceTick = Math.min(600, System.currentTimeMillis() - lastTickMillis);
-		return Math.max(0, ticks * 600 - sinceTick) / 1000.0;
 	}
 
 	private void handedOver(int stillHolding)

@@ -25,16 +25,18 @@ class SceneOverlay extends Overlay
 	private final ConstructionPilotPlugin plugin;
 	private final House house;
 	private final Butler butler;
+	private final TickClock clock;
 	private final ConstructionPilotConfig config;
 	private final ModelOutlineRenderer outlines;
 
 	@Inject
-	SceneOverlay(Client client, ConstructionPilotPlugin plugin, House house, Butler butler, ConstructionPilotConfig config, ModelOutlineRenderer outlines)
+	SceneOverlay(Client client, ConstructionPilotPlugin plugin, House house, Butler butler, TickClock clock, ConstructionPilotConfig config, ModelOutlineRenderer outlines)
 	{
 		this.client = client;
 		this.plugin = plugin;
 		this.house = house;
 		this.butler = butler;
+		this.clock = clock;
 		this.config = config;
 		this.outlines = outlines;
 		setPosition(OverlayPosition.DYNAMIC);
@@ -56,7 +58,7 @@ class SceneOverlay extends Overlay
 		{
 			String text = butler.isReturnDialogOpen()
 				? "Don't continue, click the " + (step == Step.REMOVE || step == Step.REMOVE_SOON ? "furniture" : "next spot")
-				: playerLabel(step, butler.secondsLeft());
+				: playerLabel(step, butler.ticksLeft() < 0 ? -1 : clock.secondsUntil(butler.ticksLeft()));
 			label(graphics, player.getCanvasTextLocation(graphics, text, player.getLogicalHeight() + 40), text, Color.WHITE);
 		}
 
@@ -111,7 +113,7 @@ class SceneOverlay extends Overlay
 		}
 
 		Color color = step == Step.BUILD ? config.buildColor() : config.removeColor();
-		String text = step == Step.REMOVE_SOON ? countdownLabel(decision.getCountdown()) : step.getLabel();
+		String text = step == Step.REMOVE_SOON ? countdownLabel(clock.secondsUntil(decision.getCountdown())) : step.getLabel();
 		for (GameObject target : targets)
 		{
 			outlines.drawOutline(target, config.outlineWidth(), color, 2);
@@ -141,9 +143,9 @@ class SceneOverlay extends Overlay
 		}
 	}
 
-	private static String countdownLabel(int ticks)
+	private static String countdownLabel(double seconds)
 	{
-		return ticks <= 0 ? "Remove NOW" : "Remove in " + ticks;
+		return seconds <= 0 ? "Remove NOW" : String.format("Remove in %.1fs", seconds);
 	}
 
 	// While the butler is out, count his trip down on the player's head.

@@ -76,6 +76,8 @@ public class ConstructionPilotPlugin extends Plugin
 	private SetupCheck setupCheck;
 	@Inject
 	private TickLog tickLog;
+	@Inject
+	private TickClock tickClock;
 
 	@Getter
 	private Decision decision = Decision.IDLE;
@@ -217,6 +219,7 @@ public class ConstructionPilotPlugin extends Plugin
 			decision = Decision.IDLE;
 			return;
 		}
+		tickClock.tick();
 		butler.tick();
 		buildTimer.tick();
 
