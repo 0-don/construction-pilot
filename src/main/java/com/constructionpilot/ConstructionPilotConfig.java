@@ -43,7 +43,7 @@ public interface ConstructionPilotConfig extends Config
 	@ConfigItem(
 		keyName = "smartLeftClick",
 		name = "Smart left click",
-		description = "Makes left click do the step that is due right now. When the butler should be sent, left clicking him talks to him even if he stands on a bench. When it is time to build or remove, left clicking the bench does that even if the butler is in the way. It only changes the order of the normal right click options, it never clicks for you. Recommended: on",
+		description = "Makes left click do the step that is due right now. When the butler should be sent, left clicking him talks to him even if he stands on a bench. When it is time to build or remove, left clicking the furniture or its space does that even if the butler is in the way. It only changes the order of the normal right click options, it never clicks for you. Recommended: on",
 		position = 0,
 		section = behaviourSection
 	)
@@ -67,7 +67,7 @@ public interface ConstructionPilotConfig extends Config
 	@ConfigItem(
 		keyName = "setupTips",
 		name = "Speed tips",
-		description = "Adds optional grey tips to the setup box for the fastest hold 1 and click setup: the Construction QOL plugin with the right key (6 at the table, 2 for gnome benches), the demon butler, a servant's money bag and a fetch amount in whole builds (24 with 28 free slots). Nothing is required: the plugin adapts to any servant, fetch amount and setup",
+		description = "Adds optional grey tips to the setup box for the fastest hold 1 and click setup: the Construction QOL plugin with the right key (2 for oak larders, 6 for mahogany tables, 1 for teak garden benches, 2 for gnome benches), the demon butler, a servant's money bag and a fetch amount in whole builds (24 with 28 free slots). Below level 33 it suggests Mahogany Homes instead. Nothing is required: the plugin adapts to any servant, fetch amount and setup",
 		position = 2,
 		section = behaviourSection
 	)
@@ -131,7 +131,7 @@ public interface ConstructionPilotConfig extends Config
 	@ConfigItem(
 		keyName = "removeColor",
 		name = "Remove color",
-		description = "Colour of a bench or table you should remove now, and of the countdown on one that is still appearing",
+		description = "Colour of furniture you should remove now, and of the countdown on one that is still appearing",
 		position = 2,
 		section = highlightSection
 	)

@@ -18,17 +18,20 @@ import net.runelite.api.gameval.ObjectID;
 @Singleton
 class House
 {
-	private static final Set<Integer> HOTSPOTS = Set.of(
-		ObjectID.POH_DINING_ROOM_1,
-		ObjectID.POH_SUPERIOR_GARDEN_HOTSPOT_SEATING_A_LEFT,
-		ObjectID.POH_SUPERIOR_GARDEN_HOTSPOT_SEATING_A_RIGHT,
-		ObjectID.POH_SUPERIOR_GARDEN_HOTSPOT_SEATING_B_LEFT,
-		ObjectID.POH_SUPERIOR_GARDEN_HOTSPOT_SEATING_B_RIGHT
+	// Build space of each hotspot; a garden seating space is two hotspots, one per bench half.
+	private static final Map<Integer, String> HOTSPOT_KEYS = Map.of(
+		ObjectID.POH_DINING_ROOM_1, "table",
+		ObjectID.POH_KITCHEN_5, "larder",
+		ObjectID.POH_SUPERIOR_GARDEN_HOTSPOT_SEATING_A_LEFT, "garden A",
+		ObjectID.POH_SUPERIOR_GARDEN_HOTSPOT_SEATING_A_RIGHT, "garden A",
+		ObjectID.POH_SUPERIOR_GARDEN_HOTSPOT_SEATING_B_LEFT, "garden B",
+		ObjectID.POH_SUPERIOR_GARDEN_HOTSPOT_SEATING_B_RIGHT, "garden B"
 	);
-	private static final Set<Integer> FURNITURE = Set.of(
-		ObjectID.POH_DININGTABLE_6,
-		ObjectID.POH_GARDEN_BENCH_GNOME_LEFT,
-		ObjectID.POH_GARDEN_BENCH_GNOME_RIGHT
+	private static final Map<String, Space> KEY_SPACES = Map.of(
+		"table", Space.TABLE,
+		"larder", Space.LARDER,
+		"garden A", Space.GARDEN,
+		"garden B", Space.GARDEN
 	);
 	private static final Set<Integer> BELL_PULLS = Set.of(ObjectID.POH_BELLPULL_1, ObjectID.POH_BELLPULL_2, ObjectID.POH_BELLPULL_3);
 	// The dining room and the superior garden can both be loaded; only spaces next to the player count.
@@ -39,6 +42,8 @@ class House
 	private final List<GameObject> furniture = new ArrayList<>();
 	// Which build space each hotspot tile belongs to, so the furniture built there groups with it.
 	private final Map<WorldPoint, String> tileSpace = new HashMap<>();
+	// Furniture seen on a tile whose hotspot never showed: its method tells the kind of space.
+	private final Map<String, Space> seenSpaces = new HashMap<>();
 
 	@Getter
 	private GameObject bellPull;
@@ -64,15 +69,16 @@ class House
 		{
 			bellPull = object;
 		}
-		if (HOTSPOTS.contains(id))
+		if (HOTSPOT_KEYS.containsKey(id))
 		{
 			hotspots.add(object);
-			tileSpace.put(object.getWorldLocation(), spaceKey(id));
+			tileSpace.put(object.getWorldLocation(), HOTSPOT_KEYS.get(id));
 			tickLog.add("hotspot appears " + id + " at " + object.getWorldLocation());
 		}
-		else if (FURNITURE.contains(id))
+		else if (Method.ALL_FURNITURE.contains(id))
 		{
 			furniture.add(object);
+			seenSpaces.putIfAbsent(spaceAt(object.getWorldLocation()), Method.ofFurniture(id).getSpace());
 			tickLog.add("furniture appears " + id + " at " + object.getWorldLocation());
 			return true;
 		}
@@ -119,7 +125,6 @@ class House
 	{
 		Map<String, List<WorldPoint>> tiles = new LinkedHashMap<>();
 		Map<String, Boolean> built = new HashMap<>();
-		Map<String, Boolean> table = new HashMap<>();
 		List<GameObject> all = new ArrayList<>(furniture);
 		all.addAll(hotspots);
 		for (GameObject object : all)
@@ -131,16 +136,32 @@ class House
 			}
 			String key = spaceAt(tile);
 			tiles.computeIfAbsent(key, k -> new ArrayList<>()).add(tile);
-			built.merge(key, FURNITURE.contains(object.getId()), Boolean::logicalOr);
-			table.merge(key, object.getId() == ObjectID.POH_DININGTABLE_6 || object.getId() == ObjectID.POH_DINING_ROOM_1, Boolean::logicalOr);
+			built.merge(key, Method.ALL_FURNITURE.contains(object.getId()), Boolean::logicalOr);
 		}
 		List<Spot> spots = new ArrayList<>();
 		for (Map.Entry<String, List<WorldPoint>> entry : tiles.entrySet())
 		{
-			spots.add(new Spot(entry.getKey(), entry.getValue(), built.get(entry.getKey()), table.get(entry.getKey())));
+			String key = entry.getKey();
+			spots.add(new Spot(key, entry.getValue(), built.get(key), KEY_SPACES.getOrDefault(key, seenSpaces.get(key))));
 		}
 		spots.sort(Comparator.comparingInt(spot -> spot.getTiles().get(0).distanceTo(at)));
 		return spots;
+	}
+
+	// The method of furniture standing in one of these spaces, or null when all are empty.
+	Method builtMethod(List<Spot> spots)
+	{
+		for (GameObject object : furniture)
+		{
+			for (Spot spot : spots)
+			{
+				if (spot.getTiles().contains(object.getWorldLocation()))
+				{
+					return Method.ofFurniture(object.getId());
+				}
+			}
+		}
+		return null;
 	}
 
 	// All tiles of the space containing this tile, or null when it is not a space near the player.
@@ -178,18 +199,5 @@ class House
 			}
 		}
 		return result;
-	}
-
-	private static String spaceKey(int hotspotId)
-	{
-		if (hotspotId == ObjectID.POH_SUPERIOR_GARDEN_HOTSPOT_SEATING_A_LEFT || hotspotId == ObjectID.POH_SUPERIOR_GARDEN_HOTSPOT_SEATING_A_RIGHT)
-		{
-			return "garden A";
-		}
-		if (hotspotId == ObjectID.POH_SUPERIOR_GARDEN_HOTSPOT_SEATING_B_LEFT || hotspotId == ObjectID.POH_SUPERIOR_GARDEN_HOTSPOT_SEATING_B_RIGHT)
-		{
-			return "garden B";
-		}
-		return "table";
 	}
 }

@@ -12,6 +12,8 @@ class Snapshot
 {
 	boolean buildingMode;
 	int planks;
+	// Of the current method: 8 for an oak larder, 6 otherwise.
+	int planksPerBuild;
 	int plankSlots;
 	int freeSlots;
 	// Servant standing close enough to talk to.

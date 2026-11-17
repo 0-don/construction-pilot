@@ -1,8 +1,17 @@
 # Construction Pilot
 
-Shows what to click next, and when, while you train Construction with the hold 1 method: mahogany tables or gnome benches in your house, with a servant fetching planks.
+Shows what to click next, and when, while you train Construction with the hold 1 method in your house, with a servant fetching planks.
 
-It drives mahogany tables (level 52) and gnome benches (level 77). Below 52 it says so in building mode and suggests Mahogany Homes, which trains Construction from level 1 without your own house.
+Supported methods (levels and keys from the OSRS Wiki):
+
+| Method | Level | Planks per build | Construction QOL key |
+| --- | --- | --- | --- |
+| Oak larder (kitchen) | 33 | 8 oak | 2 |
+| Mahogany table (dining room) | 52 | 6 mahogany | 6 |
+| Teak garden bench (superior garden) | 66 | 6 teak | 1 |
+| Gnome bench (superior garden) | 77 | 6 mahogany | 2 |
+
+The plugin picks the method from the space you stand at and the planks you carry. Below 33 it says so in building mode and suggests Mahogany Homes, which trains Construction from level 1 without your own house.
 
 You still do every click. The plugin only draws outlines and labels, and can reorder the right click menu so the right option is on left click.
 
@@ -18,7 +27,7 @@ The send point is calculated, not fixed: it uses your free inventory slots, how 
 
 ## Smart left click
 
-When on, left click does the step that is due: Talk-to on the butler even when he stands on a bench, Build or Remove on the bench even when the butler is in the way. It only changes the order of the normal menu options. It never adds or removes options and never clicks for you.
+When on, left click does the step that is due: Talk-to on the butler even when he stands on a bench, Build or Remove on the furniture even when the butler is in the way. It only changes the order of the normal menu options. It never adds or removes options and never clicks for you.
 
 ## Settings
 
@@ -31,6 +40,7 @@ The code is split so the decision logic can be tested without a game client:
 | File | Role |
 | --- | --- |
 | `ConstructionPilotPlugin` | Routes game events to the trackers in a fixed order, builds a `Snapshot` each tick and asks `Policy` for a `Decision` |
+| `Method`, `Space` | The supported training methods: plank type, planks per build, furniture IDs, level |
 | `House` | Build spaces, furniture and bell-pull, kept from spawn and despawn events (no scene scans) |
 | `Butler` | The servant: trips, hand-overs, what he holds, wages, his dialogue |
 | `BuildTimer` | Build and remove clicks with their tick timing, and your building speed |

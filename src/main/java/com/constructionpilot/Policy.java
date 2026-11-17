@@ -6,7 +6,6 @@ import net.runelite.api.coords.WorldPoint;
 
 final class Policy
 {
-	static final int PLANKS_PER_BUILD = 6;
 	private static final int DEFAULT_TRIP_TICKS = 12;
 	// Talking to the servant and choosing the fetch takes a couple of ticks on top of the trip.
 	static final int DIALOG_TICKS = 2;
@@ -29,25 +28,26 @@ final class Policy
 		int sendAt = sendAt(s, fetch);
 		int planks = s.getPlanks();
 		int holding = s.getButlerHolding();
+		int perBuild = s.getPlanksPerBuild();
 
 		// Back but not handed over yet (you were busy): he has your planks, so he is next, or now when you are out.
 		boolean waitingOnHim = s.isButlerPresent() && s.isAwaitingHandOver();
 		boolean handedOver = s.isButlerPresent() && !s.isAwaitingHandOver();
 		// One more build and he is due: planks after it at or under the send point.
 		boolean butlerNext = waitingOnHim || handedOver && (holding > 0
-			|| (planks >= PLANKS_PER_BUILD && planks - PLANKS_PER_BUILD <= sendAt));
+			|| (planks >= perBuild && planks - perBuild <= sendAt));
 		Decision bench = benchDecision(s, spots, butlerNext);
 
 		// Take only when it is worth a click: everything he holds fits, or the next build needs planks.
 		boolean allFit = s.getFreeSlots() >= holding;
 		// Also send when you would run dry before he is back: a few planks he has to hold cost one take click,
 		// waiting with nothing to build costs his whole trip.
-		boolean runsDry = s.getSendAtOverride() == 0 && planks - usedDuringTrip(s) < PLANKS_PER_BUILD;
-		boolean wantsTake = holding > 0 && (allFit || planks < PLANKS_PER_BUILD);
+		boolean runsDry = s.getSendAtOverride() == 0 && planks - usedDuringTrip(s) < perBuild;
+		boolean wantsTake = holding > 0 && (allFit || planks < perBuild);
 		boolean wantsSend = holding == 0 && (planks <= sendAt || runsDry);
 
 		Step butlerStep = null;
-		if (waitingOnHim && planks < PLANKS_PER_BUILD)
+		if (waitingOnHim && planks < perBuild)
 		{
 			butlerStep = Step.TAKE_PLANKS;
 		}
@@ -56,7 +56,7 @@ final class Policy
 		{
 			butlerStep = Step.CALL_BUTLER;
 		}
-		else if (handedOver && holding > 0 && (allFit || (planks < PLANKS_PER_BUILD && s.getFreeSlots() > 0)))
+		else if (handedOver && holding > 0 && (allFit || (planks < perBuild && s.getFreeSlots() > 0)))
 		{
 			butlerStep = Step.TAKE_PLANKS;
 		}
@@ -93,7 +93,7 @@ final class Policy
 			List<Spot> after = new ArrayList<>();
 			for (Spot spot : spots)
 			{
-				after.add(spot.getKey().equals(s.getRemoving()) ? new Spot(spot.getKey(), spot.getTiles(), false, spot.isTable()) : spot);
+				after.add(spot.getKey().equals(s.getRemoving()) ? new Spot(spot.getKey(), spot.getTiles(), false, spot.getSpace()) : spot);
 			}
 			spots = after;
 		}
@@ -102,7 +102,7 @@ final class Policy
 		if (!built.isEmpty())
 		{
 			List<WorldPoint> empty = tiles(spots, false);
-			boolean canBuildNext = !empty.isEmpty() && s.getPlanks() >= PLANKS_PER_BUILD;
+			boolean canBuildNext = !empty.isEmpty() && s.getPlanks() >= s.getPlanksPerBuild();
 			return Decision.builder()
 				.step(Step.REMOVE)
 				.target(built)
@@ -111,7 +111,7 @@ final class Policy
 				.butlerNext(butlerNext && s.getButlerHolding() > 0)
 				.build();
 		}
-		if (s.getPlanks() >= PLANKS_PER_BUILD)
+		if (s.getPlanks() >= s.getPlanksPerBuild())
 		{
 			String justCleared = s.getRemoving() != null ? s.getRemoving() : s.getFreshRemoved();
 			return Decision.builder().step(Step.BUILD).target(buildTarget(spots, justCleared, s.getButlerTile())).butlerNext(butlerNext).build();
@@ -147,8 +147,9 @@ final class Policy
 	// before planks are used again, so a send right after building lets fewer planks go than the average rate.
 	static int usedDuringTrip(Snapshot s)
 	{
+		int perBuild = s.getPlanksPerBuild();
 		int horizon = tripTicks(s) + DIALOG_TICKS;
-		double ticksPerBuild = s.getPlanksPerTick() > 0 ? PLANKS_PER_BUILD / s.getPlanksPerTick() : PLANKS_PER_BUILD;
+		double ticksPerBuild = s.getPlanksPerTick() > 0 ? perBuild / s.getPlanksPerTick() : perBuild;
 		int buildTicks = Math.max(2, (int) Math.round(ticksPerBuild) - REMOVE_TICKS);
 		int built = 0;
 		if (s.getSpots() != null)
@@ -177,7 +178,7 @@ final class Policy
 				built--;
 				continue;
 			}
-			if (planks < PLANKS_PER_BUILD)
+			if (planks < perBuild)
 			{
 				break;
 			}
@@ -186,8 +187,8 @@ final class Policy
 			{
 				break;
 			}
-			planks -= PLANKS_PER_BUILD;
-			used += PLANKS_PER_BUILD;
+			planks -= perBuild;
+			used += perBuild;
 			built++;
 		}
 		return used;

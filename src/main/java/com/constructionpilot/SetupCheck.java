@@ -25,8 +25,6 @@ class SetupCheck
 	private static final Set<Integer> SAWS = Set.of(ItemID.POH_SAW, ItemID.EYEGLO_CRYSTAL_SAW, ItemID.WEARABLE_SAW, ItemID.WEARABLE_SAW_OFFHAND);
 	private static final String QOL_PLUGIN = "Construction QOL";
 	private static final String QOL_GROUP = "zom-con-qol";
-	// Mahogany tables, the first method this plugin drives.
-	private static final int FIRST_METHOD_LEVEL = 52;
 
 	private final Client client;
 	private final ConfigManager configManager;
@@ -47,25 +45,29 @@ class SetupCheck
 		this.butler = butler;
 	}
 
-	void update(Snapshot snapshot)
+	void update(Snapshot snapshot, Method method)
 	{
 		List<String> missing = new ArrayList<>();
 		List<String> tips = new ArrayList<>();
-		if (snapshot.isBuildingMode() && client.getBoostedSkillLevel(Skill.CONSTRUCTION) < FIRST_METHOD_LEVEL)
+		if (snapshot.isBuildingMode() && client.getBoostedSkillLevel(Skill.CONSTRUCTION) < Method.FIRST_LEVEL)
 		{
-			tips.add("Construction Pilot starts at " + FIRST_METHOD_LEVEL + " (mahogany tables)");
+			tips.add("Construction Pilot starts at " + Method.FIRST_LEVEL + " (oak larders)");
 			tips.add("Until then Mahogany Homes is a good low effort way to train");
 		}
 		else if (snapshot.isBuildingMode() && snapshot.getSpots() != null && !snapshot.getSpots().isEmpty())
 		{
-			check(snapshot, missing, tips);
+			check(snapshot, method, missing, tips);
 		}
 		this.missing = missing;
 		this.tips = tips;
 	}
 
-	private void check(Snapshot snapshot, List<String> missing, List<String> tips)
+	private void check(Snapshot snapshot, Method method, List<String> missing, List<String> tips)
 	{
+		if (client.getBoostedSkillLevel(Skill.CONSTRUCTION) < method.getLevel())
+		{
+			missing.add(capitalize(method.getName()) + " need level " + method.getLevel());
+		}
 		if (!carries(HAMMERS))
 		{
 			missing.add("Bring a hammer (or wear the Imcando hammer)");
@@ -75,8 +77,7 @@ class SetupCheck
 			missing.add("Bring a saw (or wear Amy's saw)");
 		}
 
-		boolean atTable = snapshot.getSpots().get(0).isTable();
-		String wantKey = atTable ? "6" : "2";
+		String wantKey = method.getQolKey();
 		if (!qolRunning())
 		{
 			tips.add("Construction QOL lets you hold 1 instead of picking the menu");
@@ -84,7 +85,7 @@ class SetupCheck
 		else if (!wantKey.equals(configManager.getConfiguration(QOL_GROUP, "output"))
 			|| !"1".equals(configManager.getConfiguration(QOL_GROUP, "input")))
 		{
-			tips.add("Construction QOL: input 1, output " + wantKey + (atTable ? " for the table" : " for gnome benches"));
+			tips.add("Construction QOL: input 1, output " + wantKey + " for " + method.getName());
 		}
 
 		ServantType type = butler.getType();
@@ -98,11 +99,17 @@ class SetupCheck
 		}
 		int fetch = butler.getRequestedFetch();
 		int capacity = type != null ? Math.min(type.getCapacity(), snapshot.getPlankSlots()) : snapshot.getPlankSlots();
-		int ideal = capacity / Policy.PLANKS_PER_BUILD * Policy.PLANKS_PER_BUILD;
-		if (fetch > 0 && ideal > 0 && fetch % Policy.PLANKS_PER_BUILD != 0)
+		int perBuild = method.getPlanksPerBuild();
+		int ideal = capacity / perBuild * perBuild;
+		if (fetch > 0 && ideal > 0 && fetch % perBuild != 0)
 		{
 			tips.add("Fetching " + ideal + " (whole builds) avoids leftover planks");
 		}
+	}
+
+	private static String capitalize(String text)
+	{
+		return Character.toUpperCase(text.charAt(0)) + text.substring(1);
 	}
 
 	private boolean qolRunning()

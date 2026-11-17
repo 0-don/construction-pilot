@@ -1,6 +1,7 @@
 package com.constructionpilot;
 
 import com.google.inject.Provides;
+import java.util.List;
 import javax.inject.Inject;
 import lombok.Getter;
 import net.runelite.api.ChatMessageType;
@@ -44,7 +45,7 @@ import net.runelite.client.util.Text;
 // asks Policy what to click. Overlays only draw the resulting Decision.
 @PluginDescriptor(
 	name = "Construction Pilot",
-	description = "Highlights the next hotspot to build or remove and when to send the butler",
+	description = "Shows what to build or remove next and when to send the butler: oak larders, mahogany tables, teak and gnome benches",
 	tags = {"construction", "poh", "butler", "gnome bench", "mahogany table"}
 )
 public class ConstructionPilotPlugin extends Plugin
@@ -78,6 +79,9 @@ public class ConstructionPilotPlugin extends Plugin
 
 	@Getter
 	private Decision decision = Decision.IDLE;
+	// Picked each tick from the space you stand at and the planks you carry.
+	@Getter
+	private Method method = Method.MAHOGANY_TABLE;
 	@Getter
 	private int planks;
 	// Slots planks may use: everything except the other items you carry.
@@ -86,6 +90,8 @@ public class ConstructionPilotPlugin extends Plugin
 	private int freeSlots;
 	@Getter
 	private int planksUsed;
+	@Getter
+	private long planksCost;
 	private String lastSwap = "";
 	private int lastConstructionXp = -1;
 
@@ -162,11 +168,12 @@ public class ConstructionPilotPlugin extends Plugin
 			return;
 		}
 		ItemContainer inventory = event.getItemContainer();
-		int now = inventory.count(ItemID.PLANK_MAHOGANY);
+		int now = inventory.count(method.getPlank());
 		if (now < planks)
 		{
 			planksUsed += planks - now;
-			buildTimer.planksUsed(planks, now);
+			planksCost += (long) (planks - now) * itemManager.getItemPrice(method.getPlank());
+			buildTimer.planksUsed(planks, now, method.getPlanksPerBuild());
 		}
 		else if (now > planks)
 		{
@@ -176,8 +183,13 @@ public class ConstructionPilotPlugin extends Plugin
 		{
 			tickLog.add("planks " + planks + " -> " + now);
 		}
-		planks = now;
+		countSlots(inventory);
+	}
 
+	// Plank count and slots without treating the change as used or delivered planks.
+	private void countSlots(ItemContainer inventory)
+	{
+		planks = inventory.count(method.getPlank());
 		int used = 0;
 		int plankStacks = 0;
 		for (Item item : inventory.getItems())
@@ -185,7 +197,7 @@ public class ConstructionPilotPlugin extends Plugin
 			if (item.getId() != -1 && item.getQuantity() > 0)
 			{
 				used++;
-				if (item.getId() == ItemID.PLANK_MAHOGANY)
+				if (item.getId() == method.getPlank())
 				{
 					plankStacks++;
 				}
@@ -208,6 +220,8 @@ public class ConstructionPilotPlugin extends Plugin
 		buildTimer.tick();
 
 		WorldPoint at = player.getWorldLocation();
+		List<Spot> spots = house.spotsNear(at);
+		pickMethod(spots);
 		Snapshot.SnapshotBuilder builder = Snapshot.builder()
 			.buildingMode(client.getVarbitValue(VarbitID.POH_BUILDING_MODE) == 1)
 			.plankSlots(plankSlots)
@@ -222,14 +236,15 @@ public class ConstructionPilotPlugin extends Plugin
 			.requestedFetch(butler.getRequestedFetch())
 			.lastDelivery(butler.getLastDelivery())
 			.sendAtOverride(config.sendAtOverride())
-			.spots(house.spotsNear(at));
-		Snapshot snapshot = buildTimer.describe(builder, planks).build();
+			.planksPerBuild(method.getPlanksPerBuild())
+			.spots(spots);
+		Snapshot snapshot = buildTimer.describe(builder, planks, method.getPlanksPerBuild()).build();
 
 		Decision next = Policy.decide(snapshot);
-		setupCheck.update(snapshot);
+		setupCheck.update(snapshot, method);
 		if (tickLog.enabled())
 		{
-			tickLog.add("state " + next.getStep() + " target=" + house.spaceAt(next.getTarget())
+			tickLog.add("state " + next.getStep() + " " + method + " target=" + house.spaceAt(next.getTarget())
 				+ " next=" + house.spaceAt(next.getNext()) + " planks=" + planks
 				+ " butler=" + (butler.getNpc() != null ? "here holding " + butler.getHolding() : butler.ticksLeft() >= 0 ? "away " + butler.ticksLeft() : "none")
 				+ " removing=" + snapshot.getRemoving() + " pending=" + buildTimer.isPending() + " countdown=" + next.getCountdown()
@@ -240,6 +255,23 @@ public class ConstructionPilotPlugin extends Plugin
 			}
 		}
 		decision = next;
+	}
+
+	private void pickMethod(List<Spot> spots)
+	{
+		ItemContainer inventory = client.getItemContainer(InventoryID.INV);
+		if (spots.isEmpty() || spots.get(0).getSpace() == null || inventory == null)
+		{
+			return;
+		}
+		Method picked = Method.at(spots.get(0).getSpace(), house.builtMethod(spots), method,
+			inventory.count(ItemID.PLANK_TEAK), inventory.count(ItemID.PLANK_MAHOGANY), client.getBoostedSkillLevel(Skill.CONSTRUCTION));
+		if (picked != method)
+		{
+			tickLog.add("method " + method + " -> " + picked);
+			method = picked;
+			countSlots(inventory);
+		}
 	}
 
 	// Lowest priority runs last, after Menu Entry Swapper and other swappers, so this choice is the final one.
@@ -337,11 +369,6 @@ public class ConstructionPilotPlugin extends Plugin
 	public void onWidgetLoaded(WidgetLoaded event)
 	{
 		tickLog.add("interface opens " + event.getGroupId());
-	}
-
-	long planksCost()
-	{
-		return (long) planksUsed * itemManager.getItemPrice(ItemID.PLANK_MAHOGANY);
 	}
 
 	@Provides

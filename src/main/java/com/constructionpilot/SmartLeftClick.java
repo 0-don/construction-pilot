@@ -4,7 +4,7 @@ import net.runelite.api.MenuEntry;
 import net.runelite.client.util.Text;
 
 // Moves the entry for the current step to left click: the servant's Talk-to when he is due, the Build or Remove
-// on a bench or table when that is due. It only reorders; it never adds, removes or clicks anything.
+// on the furniture or its space when that is due. It only reorders; it never adds, removes or clicks anything.
 final class SmartLeftClick
 {
 	private SmartLeftClick()
@@ -47,7 +47,14 @@ final class SmartLeftClick
 	{
 		String option = Text.removeTags(entry.getOption());
 		String target = Text.removeTags(entry.getTarget()).toLowerCase();
-		return ("Remove".equals(option) && (target.contains("gnome bench") || target.contains("mahogany table")))
-			|| ("Build".equals(option) && (target.contains("seating space") || target.contains("table space")));
+		for (Method method : Method.values())
+		{
+			if (("Remove".equals(option) && target.contains(method.getFurnitureName()))
+				|| ("Build".equals(option) && target.contains(method.getSpace().getHotspotName())))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 }

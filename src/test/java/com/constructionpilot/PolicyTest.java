@@ -16,12 +16,12 @@ public class PolicyTest
 
 	private static Spot table(boolean built)
 	{
-		return new Spot("table", Collections.singletonList(TABLE), built, true);
+		return new Spot("table", Collections.singletonList(TABLE), built, Space.TABLE);
 	}
 
 	private static Spot garden(String key, boolean built, WorldPoint... tiles)
 	{
-		return new Spot(key, Arrays.asList(tiles), built, false);
+		return new Spot(key, Arrays.asList(tiles), built, Space.GARDEN);
 	}
 
 	private static Snapshot.SnapshotBuilder base()
@@ -29,6 +29,7 @@ public class PolicyTest
 		return Snapshot.builder()
 			.buildingMode(true)
 			.planks(24)
+			.planksPerBuild(6)
 			.plankSlots(28)
 			.freeSlots(4)
 			.servantType(ServantType.DEMON_BUTLER)
@@ -342,5 +343,33 @@ public class PolicyTest
 	{
 		assertEquals(20, Policy.fetchAmount(base().servantType(ServantType.BUTLER).requestedFetch(26).build()));
 		assertEquals(22, Policy.fetchAmount(base().plankSlots(22).requestedFetch(26).build()));
+	}
+
+	private static Snapshot.SnapshotBuilder larder()
+	{
+		return base()
+			.planksPerBuild(8)
+			.spots(Collections.singletonList(new Spot("larder", Collections.singletonList(TABLE), false, Space.LARDER)));
+	}
+
+	@Test
+	public void larderNeedsEightPlanks()
+	{
+		assertEquals(Step.WAIT, Policy.decide(larder().butlerOnTrip(true).planks(7).build()).getStep());
+		assertEquals(Step.BUILD, Policy.decide(larder().butlerOnTrip(true).planks(8).build()).getStep());
+	}
+
+	@Test
+	public void larderTripUsesWholeLarders()
+	{
+		// One plank a tick: build 6, remove 2, build 6 fills the 14 tick horizon, so two larders' planks go.
+		assertEquals(16, Policy.usedDuringTrip(larder().build()));
+	}
+
+	@Test
+	public void larderSendsWithTwoBuildsLeft()
+	{
+		Snapshot s = larder().butlerPresent(true).requestedFetch(24).planks(16).build();
+		assertEquals(Step.SEND_BUTLER, Policy.decide(s).getStep());
 	}
 }

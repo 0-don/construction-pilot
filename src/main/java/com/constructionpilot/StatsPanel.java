@@ -39,7 +39,7 @@ class StatsPanel extends OverlayPanel
 		}
 
 		panelComponent.getChildren().add(TitleComponent.builder().text("Next: " + step.getLabel()).build());
-		line("Planks", plugin.getPlanks() + " (" + plugin.getPlanks() / Policy.PLANKS_PER_BUILD + " builds)");
+		line("Planks", plugin.getPlanks() + " (" + plugin.getPlanks() / plugin.getMethod().getPlanksPerBuild() + " builds)");
 
 		ServantType type = butler.getType();
 		int away = butler.ticksAway();
@@ -58,7 +58,7 @@ class StatsPanel extends OverlayPanel
 		line("Planks per tick", String.format("%.2f", buildTimer.getPlanksPerTick()));
 		line("Trips until pay", butler.getTripsUntilPay() >= 0 ? String.valueOf(butler.getTripsUntilPay()) : "? (after next pay)");
 
-		long planksCost = plugin.planksCost();
+		long planksCost = plugin.getPlanksCost();
 		line("Planks used", plugin.getPlanksUsed() + " (" + QuantityFormatter.quantityToStackSize(planksCost) + ")");
 		line("Wages paid", QuantityFormatter.quantityToStackSize(butler.getWagesPaid()));
 		line("Session cost", QuantityFormatter.quantityToStackSize(planksCost + butler.getWagesPaid()));

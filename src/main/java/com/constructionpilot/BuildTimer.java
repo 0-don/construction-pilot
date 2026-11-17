@@ -97,13 +97,13 @@ class BuildTimer
 		}
 	}
 
-	void planksUsed(int before, int now)
+	void planksUsed(int before, int now, int perBuild)
 	{
-		if (before - now != Policy.PLANKS_PER_BUILD)
+		if (before - now != perBuild)
 		{
 			return;
 		}
-		recordBuild();
+		recordBuild(perBuild);
 		List<WorldPoint> built = clickedSpace();
 		if (built != null)
 		{
@@ -148,14 +148,14 @@ class BuildTimer
 
 	// Fills in the build side of the snapshot. Between the menu closing and the planks going, the build already
 	// counts: its planks as spent and its space as appearing.
-	Snapshot.SnapshotBuilder describe(Snapshot.SnapshotBuilder snapshot, int planks)
+	Snapshot.SnapshotBuilder describe(Snapshot.SnapshotBuilder snapshot, int planks, int perBuild)
 	{
 		int now = client.getTickCount();
 		List<WorldPoint> inFlight = pendingBuild == null && buildCommitTick >= 0
 			&& now - buildCommitTick <= BUILD_COMMIT_TICKS
-			&& planks == planksAtBuildCommit && planks >= Policy.PLANKS_PER_BUILD ? clickedSpace() : null;
+			&& planks == planksAtBuildCommit && planks >= perBuild ? clickedSpace() : null;
 		return snapshot
-			.planks(inFlight != null ? planks - Policy.PLANKS_PER_BUILD : planks)
+			.planks(inFlight != null ? planks - perBuild : planks)
 			.planksPerTick(planksPerTick)
 			.pendingBuild(inFlight != null ? inFlight : pendingBuild)
 			.ticksUntilBuilt(inFlight != null ? buildTicks + 1 - (now - buildCommitTick) : pendingBuild == null ? 0 : buildTicks - (now - pendingBuildTick))
@@ -169,13 +169,13 @@ class BuildTimer
 	}
 
 	// Plank use from the median gap between recent builds; breaks and butler waits do not drag it down.
-	private void recordBuild()
+	private void recordBuild(int perBuild)
 	{
 		int tick = client.getTickCount();
 		int gap = tick - lastBuildTick;
 		if (lastBuildTick >= 0 && gap > 0 && gap <= MAX_BUILD_GAP)
 		{
-			planksPerTick = (double) Policy.PLANKS_PER_BUILD / buildGaps.add(gap);
+			planksPerTick = (double) perBuild / buildGaps.add(gap);
 		}
 		lastBuildTick = tick;
 	}
