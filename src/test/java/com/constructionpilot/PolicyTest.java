@@ -311,15 +311,14 @@ public class PolicyTest
 	}
 
 	@Test
-	public void benchStaysQueuedDuringButlerStep()
+	public void noBenchPreviewDuringButlerStep()
 	{
 		Snapshot s = base().butlerPresent(true).requestedFetch(24).planks(4)
 			.spots(Arrays.asList(garden("garden A", true, A1, A2), garden("garden B", false, B1, B2)))
 			.build();
 		Decision d = Policy.decide(s);
 		assertEquals(Step.SEND_BUTLER, d.getStep());
-		assertEquals(Arrays.asList(A1, A2), d.getNext());
-		assertEquals(Step.REMOVE, d.getNextStep());
+		assertEquals(null, d.getNext());
 	}
 
 	@Test

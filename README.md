@@ -19,7 +19,7 @@ You still do every click. The plugin only draws outlines and labels, and can reo
 
 - **The space to click now.** An empty space to build on (green) or furniture to remove (orange). Both halves of a garden bench light up together.
 - **When to remove.** After a build, a countdown runs until the furniture appears, so the remove lands on the first possible tick.
-- **What comes next.** A faint outline marks the step after the current one, so your mouse can get there early.
+- **What comes next.** While you remove, a faint outline marks the space to build on next, and a faint butler shows he is due after the current build, so your mouse can get there early.
 - **The butler.** When to send him, when to take planks from him, how many he holds and how long until he is back (on your character's head). If he wandered off, the bell-pull lights up.
 - **Setup check.** An orange box if you are missing a hammer or saw, and optional grey tips (Construction QOL key, demon butler, money bag, fetch amount in whole builds).
 

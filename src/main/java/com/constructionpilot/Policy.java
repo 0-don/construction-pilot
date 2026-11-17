@@ -67,15 +67,8 @@ final class Policy
 		{
 			return bench.toBuilder().fetchAmount(fetch).sendAt(sendAt).build();
 		}
-		// The bench action that follows stays visible, faintly, while the butler is the current step.
-		boolean benchQueued = bench.getTarget() != null && bench.getStep() != Step.WAIT;
-		return Decision.builder()
-			.step(butlerStep)
-			.fetchAmount(fetch)
-			.sendAt(sendAt)
-			.next(benchQueued ? bench.getTarget() : null)
-			.nextStep(benchQueued ? bench.getStep() : null)
-			.build();
+		// No faint bench while the butler is due: it drew clicks to the bench first and moved as benches changed.
+		return Decision.builder().step(butlerStep).fetchAmount(fetch).sendAt(sendAt).build();
 	}
 
 	// He holds nothing and the planks left are at the send point, or would run dry before he is back: a few planks

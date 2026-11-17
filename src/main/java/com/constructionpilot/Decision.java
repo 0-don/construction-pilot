@@ -19,7 +19,7 @@ class Decision
 	int sendAt;
 	// For REMOVE_SOON: ticks until the furniture being built appears and can be removed.
 	int countdown;
-	// The bench action right after this step (the build after a remove, or the bench after a butler step).
+	// The build right after a remove, shown faintly so the mouse can already move there.
 	List<WorldPoint> next;
 	Step nextStep;
 	// After this build the butler is due: show him faintly so the mouse can get there early.
