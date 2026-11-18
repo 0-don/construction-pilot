@@ -42,4 +42,6 @@ class Snapshot
 	int ticksUntilBuilt;
 	// Talked to the butler or got planks from him since the last build.
 	boolean afterButler;
+	// His delivery arrived and nothing was built since.
+	boolean justDelivered;
 }

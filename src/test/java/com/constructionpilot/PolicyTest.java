@@ -71,14 +71,14 @@ public class PolicyTest
 	}
 
 	@Test
-	public void sendAtFitsDeliveryOnArrival()
+	public void sendAtOneBuildPastArrival()
 	{
-		// Empty table, 1 plank per tick (6 ticks per table: 2 remove, 4 build), 14 tick horizon:
-		// build 4, remove 6, build 10, remove 12 -> 12 planks used; 28 - 26 + 12 = 14.
+		// Empty table, 1 plank per tick (2 remove, 4 build), 12 tick trip:
+		// build 4, remove 6, build 10, remove 12 -> 12 planks used; 28 - 26 + 12, plus one build = 20.
 		Snapshot s = base().requestedFetch(26).build();
 		assertEquals(26, Policy.fetchAmount(s));
 		assertEquals(12, Policy.usedDuringTrip(s));
-		assertEquals(14, Policy.sendAt(s, 26));
+		assertEquals(20, Policy.sendAt(s, 26));
 	}
 
 	@Test
@@ -108,8 +108,8 @@ public class PolicyTest
 	@Test
 	public void keepsBuildingAboveThreshold()
 	{
-		// 20 planks: 12 used during the trip, 8 left keeps you building, and 8 + 26 would not fit yet.
-		Snapshot s = base().butlerPresent(true).requestedFetch(26).planks(20).build();
+		// 26 planks: above the send point of 20.
+		Snapshot s = base().butlerPresent(true).requestedFetch(26).planks(26).build();
 		assertEquals(Step.BUILD, Policy.decide(s).getStep());
 	}
 
@@ -212,8 +212,8 @@ public class PolicyTest
 	@Test
 	public void measuredTripMovesSendPoint()
 	{
-		// A 16 tick trip gives an 18 tick horizon: builds finish at 4, 10 and 16 -> 18 planks; 28 - 26 + 18 = 20.
-		assertEquals(20, Policy.sendAt(base().tripTicks(16).build(), 26));
+		// A 16 tick trip: builds finish at 4, 10 and 16 -> 18 planks; 28 - 26 + 18, plus one build = 26.
+		assertEquals(26, Policy.sendAt(base().tripTicks(16).build(), 26));
 	}
 
 	@Test
@@ -283,11 +283,11 @@ public class PolicyTest
 	@Test
 	public void butlerFlaggedNextOneBuildAhead()
 	{
-		// Send point 14 (see sendAtFitsDeliveryOnArrival): 20 planks build to 14, so he is next.
-		Decision d = Policy.decide(base().butlerPresent(true).requestedFetch(26).planks(20).build());
+		// Send point 20 (see sendAtOneBuildPastArrival): 26 planks build to 20, so he is next.
+		Decision d = Policy.decide(base().butlerPresent(true).requestedFetch(26).planks(26).build());
 		assertEquals(Step.BUILD, d.getStep());
 		org.junit.Assert.assertTrue(d.isButlerNext());
-		org.junit.Assert.assertFalse(Policy.decide(base().butlerPresent(true).requestedFetch(26).planks(26).build()).isButlerNext());
+		org.junit.Assert.assertFalse(Policy.decide(base().butlerPresent(true).requestedFetch(26).planks(28).build()).isButlerNext());
 	}
 
 	@Test
@@ -356,10 +356,11 @@ public class PolicyTest
 	}
 
 	@Test
-	public void larderSendsWithOneBuildLeft()
+	public void larderSendsWithTwoBuildsLeft()
 	{
-		assertEquals(Step.BUILD, Policy.decide(larder().butlerPresent(true).requestedFetch(24).planks(16).build()).getStep());
-		assertEquals(Step.SEND_BUTLER, Policy.decide(larder().butlerPresent(true).requestedFetch(24).planks(8).build()).getStep());
+		// 8 used during the trip; 28 - 24 + 8, plus one larder = 20.
+		assertEquals(Step.BUILD, Policy.decide(larder().butlerPresent(true).requestedFetch(24).planks(24).build()).getStep());
+		assertEquals(Step.SEND_BUTLER, Policy.decide(larder().butlerPresent(true).requestedFetch(24).planks(16).build()).getStep());
 	}
 
 	@Test
@@ -415,7 +416,7 @@ public class PolicyTest
 	@Test
 	public void afterButlerBuildFirstThenRemove()
 	{
-		Snapshot.SnapshotBuilder s = base().planks(18)
+		Snapshot.SnapshotBuilder s = base().planks(18).butlerOnTrip(true)
 			.spots(Arrays.asList(garden("garden A", true, A1, A2), garden("garden B", false, B1, B2)));
 		assertEquals(Step.REMOVE, Policy.decide(s.build()).getStep());
 		Decision d = Policy.decide(s.afterButler(true).build());
@@ -436,7 +437,7 @@ public class PolicyTest
 	@Test
 	public void afterButlerBothStandingRebuildTheClearedSide()
 	{
-		Snapshot s = base().planks(18).afterButler(true).removing("garden A")
+		Snapshot s = base().planks(18).butlerOnTrip(true).afterButler(true).removing("garden A")
 			.spots(Arrays.asList(garden("garden A", true, A1, A2), garden("garden B", true, B1, B2))).build();
 		Decision d = Policy.decide(s);
 		assertEquals(Step.BUILD, d.getStep());
@@ -444,5 +445,22 @@ public class PolicyTest
 		assertEquals(Arrays.asList(B1, B2), d.getNext());
 		Snapshot before = s.toBuilder().removing(null).build();
 		assertEquals(Step.REMOVE, Policy.decide(before).getStep());
+	}
+
+	@Test
+	public void buildOnceAfterDeliveryBeforeSending()
+	{
+		Snapshot s = base().butlerPresent(true).requestedFetch(24).planks(18).build();
+		assertEquals(Step.SEND_BUTLER, Policy.decide(s).getStep());
+		assertEquals(Step.BUILD, Policy.decide(s.toBuilder().justDelivered(true).build()).getStep());
+	}
+
+	@Test
+	public void leftoversWaitUntilNeededOrSendIsDue()
+	{
+		Snapshot.SnapshotBuilder s = base().butlerPresent(true).requestedFetch(24).butlerHolding(2).freeSlots(6);
+		assertEquals(Step.BUILD, Policy.decide(s.planks(24).build()).getStep());
+		assertEquals(Step.TAKE_PLANKS, Policy.decide(s.planks(18).build()).getStep());
+		assertEquals(Step.TAKE_PLANKS, Policy.decide(s.planks(4).build()).getStep());
 	}
 }

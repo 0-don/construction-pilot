@@ -40,6 +40,7 @@ class BuildTimer
 	// that gap is not your building rhythm.
 	private boolean interrupted;
 	private boolean afterButler;
+	private boolean justDelivered;
 	private int buildTicks = DEFAULT_BUILD_TICKS;
 
 	// The hotspot the last Build click went to, so the countdown follows the side actually built.
@@ -111,10 +112,11 @@ class BuildTimer
 		}
 	}
 
-	void planksGained()
+	void planksGained(boolean delivery)
 	{
 		interrupted = true;
 		afterButler = true;
+		justDelivered |= delivery;
 	}
 
 	void butlerTalkedTo()
@@ -168,7 +170,8 @@ class BuildTimer
 			.pendingBuild(inFlight != null ? inFlight : pendingBuild)
 			.ticksUntilBuilt(inFlight != null ? buildTicks + 1 - (now - buildCommitTick) : pendingBuild == null ? 0 : buildTicks - (now - pendingBuildTick))
 			.removing(removingKey != null && now - removeClickTick <= REMOVE_CLICK_TICKS ? removingKey : null)
-			.afterButler(afterButler);
+			.afterButler(afterButler)
+			.justDelivered(justDelivered);
 	}
 
 	private List<WorldPoint> clickedSpace()
@@ -188,5 +191,6 @@ class BuildTimer
 		lastBuildTick = tick;
 		interrupted = false;
 		afterButler = false;
+		justDelivered = false;
 	}
 }

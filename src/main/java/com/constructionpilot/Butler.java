@@ -133,21 +133,24 @@ class Butler
 	}
 
 	// The hand-over after a trip is a delivery; taking leftovers later only empties his hands.
-	void planksGained(int gained)
+	// True when this was his delivery after a trip, false for leftovers taken later.
+	boolean planksGained(int gained)
 	{
 		if (npc == null)
 		{
-			return;
+			return false;
 		}
 		if (awaitingHandOver || client.getTickCount() - handOverTick <= 1)
 		{
 			lastDelivery = gained;
 			awaitingHandOver = false;
+			return true;
 		}
-		else if (holding > 0)
+		if (holding > 0)
 		{
 			holding = Math.max(0, holding - gained);
 		}
+		return false;
 	}
 
 	void dialog(String text)

@@ -39,10 +39,13 @@ final class Policy
 			bench = bench.toBuilder().butlerNext(true).build();
 		}
 
-		// Take only when it is worth a click: everything he holds fits, or the next build needs planks.
+		// Leftovers he holds wait until they are needed (measured: removing first beat taking with 18 or more
+		// planks) or until he is due to be sent anyway, so take and send follow each other.
 		boolean allFit = s.getFreeSlots() >= holding;
-		boolean wantsTake = holding > 0 && (allFit || planks < perBuild);
-		boolean wantsSend = wantsSend(s);
+		boolean sendDue = wantsSend(s.toBuilder().butlerHolding(0).build());
+		boolean needPlanks = planks < perBuild && s.getFreeSlots() > 0;
+		boolean wantsTake = holding > 0 && (needPlanks || allFit && sendDue);
+		boolean wantsSend = holding == 0 && sendDue;
 
 		// Just back: he hands over by himself once you are free, so the bench stays the step and he shows faintly.
 		Step butlerStep = null;
@@ -51,7 +54,7 @@ final class Policy
 		{
 			butlerStep = Step.CALL_BUTLER;
 		}
-		else if (handedOver && holding > 0 && (allFit || (planks < perBuild && s.getFreeSlots() > 0)))
+		else if (handedOver && wantsTake)
 		{
 			butlerStep = Step.TAKE_PLANKS;
 		}
@@ -72,6 +75,12 @@ final class Policy
 	// he has to hold cost one take click, waiting with nothing to build costs his whole trip.
 	private static boolean wantsSend(Snapshot s)
 	{
+		// Right after a delivery one build comes first (measured with 12 planks: 5.82 ticks a bench building on,
+		// 7.46 sending at once).
+		if (s.isJustDelivered() && s.getPlanks() >= s.getPlanksPerBuild())
+		{
+			return false;
+		}
 		boolean runsDry = s.getSendAtOverride() == 0 && s.getPlanks() - usedDuringTrip(s) < s.getPlanksPerBuild();
 		return s.getButlerHolding() == 0 && (s.getPlanks() <= sendAt(s, fetchAmount(s)) || runsDry);
 	}
@@ -87,7 +96,8 @@ final class Policy
 				space = spot.getTiles();
 			}
 		}
-		return s.toBuilder().planks(s.getPlanks() - s.getPlanksPerBuild()).pendingBuild(space).removing(null).build();
+		return s.toBuilder().planks(s.getPlanks() - s.getPlanksPerBuild()).pendingBuild(space).removing(null)
+			.afterButler(false).justDelivered(false).build();
 	}
 
 	private static Decision benchDecision(Snapshot s, List<Spot> spots, boolean butlerNext)
@@ -173,14 +183,16 @@ final class Policy
 		return s.getTripTicks() > 0 ? s.getTripTicks() : s.getServantType() != null ? s.getServantType().getTripTicks() : DEFAULT_TRIP_TICKS;
 	}
 
-	// Send so the delivery fits on arrival: the planks left by then plus the fetch must not exceed the slots.
 	static int sendAt(Snapshot s, int fetch)
 	{
 		if (s.getSendAtOverride() > 0)
 		{
 			return s.getSendAtOverride();
 		}
-		return Math.max(0, Math.min(s.getPlankSlots(), s.getPlankSlots() - fetch + usedDuringTrip(s)));
+		// One build more than what fits on arrival: he then keeps a few planks for a later take, which measured
+		// cheaper than running low (with 24 fetched and 28 slots, sending at 18 gave 5.67 ticks a bench against
+		// 6.38 building on to 12).
+		return Math.max(0, Math.min(s.getPlankSlots(), s.getPlankSlots() - fetch + usedDuringTrip(s) + s.getPlanksPerBuild()));
 	}
 
 	// Walks the remove/build cycle from the current state over the trip: built furniture has to come off
