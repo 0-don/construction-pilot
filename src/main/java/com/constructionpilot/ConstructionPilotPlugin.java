@@ -11,6 +11,7 @@ import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.Menu;
 import net.runelite.api.MenuEntry;
+import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.api.Skill;
 import net.runelite.api.WorldView;
@@ -306,7 +307,12 @@ public class ConstructionPilotPlugin extends Plugin
 	public void onMenuOptionClicked(MenuOptionClicked event)
 	{
 		tickLog.add("click " + event.getMenuOption() + " | " + event.getMenuTarget() + " | " + event.getMenuAction());
-		butler.clicked(event.getMenuEntry().getNpc());
+		NPC clickedNpc = event.getMenuEntry().getNpc();
+		butler.clicked(clickedNpc);
+		if (clickedNpc != null && ServantType.byNpcId(clickedNpc.getId()) != null)
+		{
+			buildTimer.butlerTalkedTo();
+		}
 		String option = event.getMenuOption();
 		WorldPoint tile = null;
 		if ("Build".equals(option) || "Remove".equals(option))

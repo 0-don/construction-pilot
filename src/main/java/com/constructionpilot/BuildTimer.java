@@ -39,6 +39,7 @@ class BuildTimer
 	// Something other than building happened since the last build (talking to the butler, taking planks), so
 	// that gap is not your building rhythm.
 	private boolean interrupted;
+	private boolean afterButler;
 	private int buildTicks = DEFAULT_BUILD_TICKS;
 
 	// The hotspot the last Build click went to, so the countdown follows the side actually built.
@@ -113,6 +114,12 @@ class BuildTimer
 	void planksGained()
 	{
 		interrupted = true;
+		afterButler = true;
+	}
+
+	void butlerTalkedTo()
+	{
+		afterButler = true;
 	}
 
 	void furnitureAppeared(GameObject object)
@@ -160,7 +167,8 @@ class BuildTimer
 			.planksPerTick(planksPerTick)
 			.pendingBuild(inFlight != null ? inFlight : pendingBuild)
 			.ticksUntilBuilt(inFlight != null ? buildTicks + 1 - (now - buildCommitTick) : pendingBuild == null ? 0 : buildTicks - (now - pendingBuildTick))
-			.removing(removingKey != null && now - removeClickTick <= REMOVE_CLICK_TICKS ? removingKey : null);
+			.removing(removingKey != null && now - removeClickTick <= REMOVE_CLICK_TICKS ? removingKey : null)
+			.afterButler(afterButler);
 	}
 
 	private List<WorldPoint> clickedSpace()
@@ -179,5 +187,6 @@ class BuildTimer
 		}
 		lastBuildTick = tick;
 		interrupted = false;
+		afterButler = false;
 	}
 }

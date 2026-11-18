@@ -411,4 +411,25 @@ public class PolicyTest
 		Snapshot s = base().spots(Collections.singletonList(table(true))).removing("table").build();
 		assertEquals(Collections.singletonList(TABLE), Policy.decide(s).getTarget());
 	}
+
+	@Test
+	public void afterButlerBuildFirstThenRemove()
+	{
+		Snapshot.SnapshotBuilder s = base().planks(18)
+			.spots(Arrays.asList(garden("garden A", true, A1, A2), garden("garden B", false, B1, B2)));
+		assertEquals(Step.REMOVE, Policy.decide(s.build()).getStep());
+		Decision d = Policy.decide(s.afterButler(true).build());
+		assertEquals(Step.BUILD, d.getStep());
+		assertEquals(Arrays.asList(B1, B2), d.getTarget());
+		assertEquals(Arrays.asList(A1, A2), d.getNext());
+		assertEquals(Step.REMOVE, d.getNextStep());
+	}
+
+	@Test
+	public void afterButlerWithoutPlanksStillRemoves()
+	{
+		Snapshot s = base().planks(4).butlerOnTrip(true).afterButler(true)
+			.spots(Arrays.asList(garden("garden A", true, A1, A2), garden("garden B", false, B1, B2))).build();
+		assertEquals(Step.REMOVE, Policy.decide(s).getStep());
+	}
 }

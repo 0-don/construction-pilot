@@ -115,6 +115,19 @@ final class Policy
 		{
 			List<WorldPoint> empty = tiles(spots, false);
 			boolean canBuildNext = !empty.isEmpty() && s.getPlanks() >= s.getPlanksPerBuild();
+			// Right after the butler, building first and removing after is faster: measured over a day, two builds
+			// and two removes took a mean 9.7 ticks build first against 11.7 remove first after a send, 11.6 against
+			// 13.3 after a hand-over. In the normal rhythm the remove stays first.
+			if (s.isAfterButler() && s.getRemoving() == null && canBuildNext)
+			{
+				return Decision.builder()
+					.step(Step.BUILD)
+					.target(notUnderButler(spots, false, s.getButlerTile()))
+					.next(built)
+					.nextStep(Step.REMOVE)
+					.butlerNext(butlerNext)
+					.build();
+			}
 			return Decision.builder()
 				.step(Step.REMOVE)
 				.target(built)

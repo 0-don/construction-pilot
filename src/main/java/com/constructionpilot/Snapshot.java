@@ -40,4 +40,6 @@ class Snapshot
 	// Space you just clicked Remove on; its furniture counts as gone so the other side lights up at once.
 	String removing;
 	int ticksUntilBuilt;
+	// Talked to the butler or got planks from him since the last build.
+	boolean afterButler;
 }
