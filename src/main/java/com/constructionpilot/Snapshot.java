@@ -37,8 +37,6 @@ class Snapshot
 	List<Spot> spots;
 	// Tiles of the space you just clicked Build on, until the furniture appears; null otherwise.
 	List<WorldPoint> pendingBuild;
-	// Space of the last remove: the next build goes on the other side.
-	String lastRemoved;
 	// Space you just clicked Remove on; its furniture counts as gone so the other side lights up at once.
 	String removing;
 	int ticksUntilBuilt;

@@ -145,7 +145,7 @@ public class ConstructionPilotPlugin extends Plugin
 	{
 		if (house.despawned(event.getGameObject()))
 		{
-			buildTimer.furnitureGone(event.getGameObject());
+			buildTimer.furnitureGone();
 		}
 	}
 

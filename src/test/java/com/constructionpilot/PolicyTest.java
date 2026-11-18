@@ -153,16 +153,6 @@ public class PolicyTest
 	}
 
 	@Test
-	public void freshRemoveLightsOnlyTheOtherSide()
-	{
-		Snapshot s = base()
-			.spots(Arrays.asList(garden("garden A", false, A1, A2), garden("garden B", false, B1, B2)))
-			.lastRemoved("garden A")
-			.build();
-		assertEquals(Arrays.asList(B1, B2), Policy.decide(s).getTarget());
-	}
-
-	@Test
 	public void removeClickLightsOtherSideAtOnce()
 	{
 		// Bench A still standing but its remove is clicked: build B now instead of waiting for A to vanish.

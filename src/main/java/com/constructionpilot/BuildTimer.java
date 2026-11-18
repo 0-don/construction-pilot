@@ -51,9 +51,6 @@ class BuildTimer
 
 	private String removingKey;
 	private int removeClickTick = -1;
-	// The build goes on the other side of the last remove, even after talking to the butler, so it matches the
-	// space shown faintly during that remove.
-	private String lastRemovedKey;
 
 	@Inject
 	BuildTimer(Client client, House house, TickLog tickLog)
@@ -68,7 +65,6 @@ class BuildTimer
 		buildGaps.clear();
 		lastBuildTick = -1;
 		pendingBuild = null;
-		lastRemovedKey = null;
 	}
 
 	void clicked(String option, WorldPoint tile)
@@ -133,9 +129,8 @@ class BuildTimer
 		}
 	}
 
-	void furnitureGone(GameObject object)
+	void furnitureGone()
 	{
-		lastRemovedKey = house.spaceAt(object.getWorldLocation());
 		removingKey = null;
 	}
 
@@ -165,8 +160,7 @@ class BuildTimer
 			.planksPerTick(planksPerTick)
 			.pendingBuild(inFlight != null ? inFlight : pendingBuild)
 			.ticksUntilBuilt(inFlight != null ? buildTicks + 1 - (now - buildCommitTick) : pendingBuild == null ? 0 : buildTicks - (now - pendingBuildTick))
-			.removing(removingKey != null && now - removeClickTick <= REMOVE_CLICK_TICKS ? removingKey : null)
-			.lastRemoved(lastRemovedKey);
+			.removing(removingKey != null && now - removeClickTick <= REMOVE_CLICK_TICKS ? removingKey : null);
 	}
 
 	private List<WorldPoint> clickedSpace()
