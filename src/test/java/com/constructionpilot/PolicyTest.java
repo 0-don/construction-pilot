@@ -392,4 +392,23 @@ public class PolicyTest
 		Snapshot gone = standing.toBuilder().spots(Arrays.asList(garden("garden A", false, A1, A2), garden("garden B", false, B1, B2))).build();
 		assertEquals(Policy.usedDuringTrip(gone), Policy.usedDuringTrip(removing));
 	}
+
+	@Test
+	public void bothEmptySidesLightOnceRemoveLanded()
+	{
+		Snapshot inFlight = base()
+			.spots(Arrays.asList(garden("garden A", true, A1, A2), garden("garden B", false, B1, B2)))
+			.removing("garden A").build();
+		assertEquals(Arrays.asList(B1, B2), Policy.decide(inFlight).getTarget());
+		Snapshot landed = base()
+			.spots(Arrays.asList(garden("garden A", false, A1, A2), garden("garden B", false, B1, B2))).build();
+		assertEquals(Arrays.asList(A1, A2, B1, B2), Policy.decide(landed).getTarget());
+	}
+
+	@Test
+	public void tableLightsForBuildDuringItsRemove()
+	{
+		Snapshot s = base().spots(Collections.singletonList(table(true))).removing("table").build();
+		assertEquals(Collections.singletonList(TABLE), Policy.decide(s).getTarget());
+	}
 }

@@ -125,7 +125,21 @@ final class Policy
 		}
 		if (s.getPlanks() >= s.getPlanksPerBuild())
 		{
-			return Decision.builder().step(Step.BUILD).target(notUnderButler(spots, false, s.getButlerTile())).butlerNext(butlerNext).build();
+			List<Spot> buildable = new ArrayList<>();
+			for (Spot spot : spots)
+			{
+				if (!spot.getKey().equals(s.getRemoving()))
+				{
+					buildable.add(spot);
+				}
+			}
+			// A single space (table, larder) has no other side: it lights up for the build straight away.
+			List<WorldPoint> target = notUnderButler(buildable, false, s.getButlerTile());
+			if (target.isEmpty())
+			{
+				target = notUnderButler(spots, false, s.getButlerTile());
+			}
+			return Decision.builder().step(Step.BUILD).target(target).butlerNext(butlerNext).build();
 		}
 		return Decision.builder().step(Step.WAIT).build();
 	}
