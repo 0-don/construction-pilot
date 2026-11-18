@@ -432,4 +432,17 @@ public class PolicyTest
 			.spots(Arrays.asList(garden("garden A", true, A1, A2), garden("garden B", false, B1, B2))).build();
 		assertEquals(Step.REMOVE, Policy.decide(s).getStep());
 	}
+
+	@Test
+	public void afterButlerBothStandingRebuildTheClearedSide()
+	{
+		Snapshot s = base().planks(18).afterButler(true).removing("garden A")
+			.spots(Arrays.asList(garden("garden A", true, A1, A2), garden("garden B", true, B1, B2))).build();
+		Decision d = Policy.decide(s);
+		assertEquals(Step.BUILD, d.getStep());
+		assertEquals(Arrays.asList(A1, A2), d.getTarget());
+		assertEquals(Arrays.asList(B1, B2), d.getNext());
+		Snapshot before = s.toBuilder().removing(null).build();
+		assertEquals(Step.REMOVE, Policy.decide(before).getStep());
+	}
 }

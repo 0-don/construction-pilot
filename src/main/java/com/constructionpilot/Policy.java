@@ -117,8 +117,10 @@ final class Policy
 			boolean canBuildNext = !empty.isEmpty() && s.getPlanks() >= s.getPlanksPerBuild();
 			// Right after the butler, building first and removing after is faster: measured over a day, two builds
 			// and two removes took a mean 9.7 ticks build first against 11.7 remove first after a send, 11.6 against
-			// 13.3 after a hand-over. In the normal rhythm the remove stays first.
-			if (s.isAfterButler() && s.getRemoving() == null && canBuildNext)
+			// 13.3 after a hand-over. With both standing, rebuilding the side just removed beat removing the second
+			// (13.2 against 16.1 after a send, few cases). The space being removed counts as empty here: its Build
+			// option is there a tick after the click. In the normal rhythm the remove stays first.
+			if (s.isAfterButler() && canBuildNext)
 			{
 				return Decision.builder()
 					.step(Step.BUILD)
